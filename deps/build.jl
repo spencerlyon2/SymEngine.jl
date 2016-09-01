@@ -13,7 +13,7 @@ deps = [
 
 prefix=joinpath(BinDeps.depsdir(symengine), "usr")
 
-xx(t...) = (OS_NAME == :Windows ? t[1] : (OS_NAME == :Linux || length(t) == 2) ? t[2] : t[3])
+libname(t...) = (is_windows() ? t[1] : (is_linux() || length(t) == 2) ? t[2] : t[3])
 
 if is_unix()
     using Conda
@@ -24,7 +24,7 @@ if is_unix()
     provides(Conda.Manager, "mpfr", [mpfr])
     provides(Conda.Manager, "mpc", [mpc])
     # TODO: Make this work for OS X
-    provides(Conda.Manager, "symengine==0.2.0", [symengine], os = :Linux)
+    provides(Conda.Manager, "symengine==0.2.0", [symengine], os = :Unix)
 end
 
 if is_windows()
@@ -34,6 +34,7 @@ if is_windows()
     provides(WinRPM.RPM, "mpc-devel", [mpc])
 end
 
+# instructions for how to build from source for Windows
 symengine_version = "v0.2.0"
 symengine_dir = (symengine_version[1] == 'v' ? symengine_version[2:end] : symengine_version)
 
@@ -52,7 +53,7 @@ provides(BuildProcess,
         CreateDirectory(symenginebuilddir)
         @build_steps begin
             ChangeDirectory(symenginebuilddir)
-            FileRule(joinpath(prefix, "lib", xx("libsymengine.dll.a", "libsymengine.so", "libsymengine.dylib")),@build_steps begin
+            FileRule(joinpath(prefix, "lib", libname("libsymengine.dll.a", "libsymengine.so", "libsymengine.dylib")),@build_steps begin
                 `cmake -G"$generator" -DCMAKE_INSTALL_PREFIX="$prefix" -DCMAKE_PREFIX_PATH="$prefix" -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=yes -DBUILD_SHARED_LIBS=on -DBUILD_TESTS=no -DBUILD_BENCHMARKS=no -DINTEGER_CLASS=gmp -DWITH_MPC=yes $symenginesrcdir`
                 `cmake --build .`
                 `cmake --build . --target install`
@@ -60,4 +61,4 @@ provides(BuildProcess,
         end
     end), symengine)
 
-@BinDeps.install Dict([(:symengine, :symengine)])
+@BinDeps.install Dict([(:symengine, :libsymengine)])
